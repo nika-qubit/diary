@@ -1,5 +1,6 @@
 # General Files
 *.csv
+*.mf
 
 # Idea
 .idea
