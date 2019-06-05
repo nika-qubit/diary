@@ -14,7 +14,7 @@ contributor while keeping the code base platform, tool and workflow isolated.
 
 If you use *[homebrew](https://brew.sh/)*, installation:
 
-```
+```bash
 # If you don't have Python3.
 brew install python
 
@@ -28,7 +28,7 @@ pip3 install virtualenv
 If you use *[apt/apt-get](https://askubuntu.com/questions/445384/what-is-the-difference-between-apt-and-apt-get)*
 , installation:
 
-```
+```bash
 apt install python3-pip
 pip3 install virtualenv
 ```
@@ -36,10 +36,11 @@ pip3 install virtualenv
 ### Instructions
 #### Activate Virtual Env
 
-```
+```bash
 virtualenv env
 . ./env/bin/activate
 ```
+
 "env" has been ignored by this repo.
 Check .gitignore for details.
 Do not create and version control your virtual environment in this repo.
@@ -47,7 +48,7 @@ Do not create and version control your virtual environment in this repo.
 #### Packages to install
 Install packages in your virtual environment after activating it.
 
-```
+```bash
 # If not yet, activate the virtual environment.
 . ./env/bin/activate
 
@@ -58,12 +59,13 @@ pip3 install crypto-news-api
 
 #### Run Script
 
-```
+```bash
 # If not yet, activate the virtual environment.
 . ./env/bin/activate
 
 python3 simple_scraper.py
 ```
+
 You should be able to see 2 files generated:
 * btc_prices.csv
 * btc_news.csv
