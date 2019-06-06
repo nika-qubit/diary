@@ -1,10 +1,10 @@
 import csv
-import json
-import requests
-
-from cryptocmd import CmcScraper
 from datetime import datetime
 from datetime import timedelta
+import json
+
+from cryptocmd import CmcScraper
+import requests
 
 # https://github.com/guptarohit/cryptoCMD
 from_date = "28-04-2018"
@@ -20,7 +20,7 @@ def Scrape(coin_code):
   # Parses dates like 28-04-2019
   for row in data:
     date = datetime.strptime(row[0], '%d-%m-%Y')
-    row[0] = date.strftime('%Y-%m-%dT%H:%M:%S%z')
+    row[0] = date.strftime('%Y-%m-%dT%H:%M:%SZ')
 
   with open('btc_prices.csv', 'w') as f:
     w = csv.writer(f)
@@ -44,10 +44,10 @@ with requests.Session() as s:
   index = 0
   for article in most_recent['posts']['recent']:
     new_article = {
-        'Date': article['publishedW3'].encode('utf-8'),
-        'Url': article['url'].encode('utf-8'),
-        'Title': article['title'].encode('utf-8'),
-        'Lead': article['leadfull'].encode('utf-8')
+        'Date': article['publishedW3'],
+        'Url': article['url'],
+        'Title': article['title'],
+        'Lead': article['leadfull']
     }
     # Parses dates like '2019-04-24T18:03:00+01:00'
     # date = datetime.strptime(new_article['Date'], '%Y-%m-%dT%H:%M:%S%z')
@@ -64,13 +64,13 @@ with requests.Session() as s:
       break
     for article in (resp['posts']['recent']):
       new_article = {
-          'Date': article['publishedW3'].encode('utf-8'),
-          'Url': article['url'].encode('utf-8'),
-          'Title': article['title'].encode('utf-8'),
-          'Lead': article['leadfull'].encode('utf-8')
+          'Date': article['publishedW3'],
+          'Url': article['url'],
+          'Title': article['title'],
+          'Lead': article['leadfull']
       }
       articles.append(new_article)
-    date = datetime.strptime(articles[-1]['Date'].decode('utf-8'),
+    date = datetime.strptime(articles[-1]['Date'],
                              '%Y-%m-%dT%H:%M:%S+01:00')
     page += 1
 

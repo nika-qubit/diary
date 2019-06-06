@@ -26,6 +26,12 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:1.7.26'
     // https://search.maven.org/artifact/org.slf4j/slf4j-jdk14/1.7.26/jar
     implementation 'org.slf4j:slf4j-jdk14:1.7.26'
+
+    // Guava
+    compile group: 'com.google.guava', name: 'guava', version: '23.5-jre'
+
+    // Source from other sub projects
+    compile project(':crypto-model')
     
     testCompile 'junit:junit:4.12'
 }

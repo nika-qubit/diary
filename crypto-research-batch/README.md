@@ -52,20 +52,29 @@ dependencies {
 * Check your [Dataflow GCP console](https://pantheon.corp.google.com/dataflow) on Google Cloud and
  make sure that you have Dataflow enabled.
 * Authenticate with service account
-  1. In the GCP Console, go to the
+ (referring the "*Set up authentication:*" step of "*Before you begin*" in
+ [Dataflow Quickstart](https://cloud.google.com/dataflow/docs/quickstarts/quickstart-java-maven))
+  * In the GCP Console, go to the
   [Create service account key](https://pantheon.corp.google.com/apis/credentials/serviceaccountkey) page.
-  2. From the Service account list, select New service account.
-  3. In the Service account name field, enter a name.
-  4. From the Role list, select Project > Owner. *Note: The Role field authorizes your service
+  * From the Service account list, select New service account.
+  * In the Service account name field, enter a name.
+  * From the Role list, select Project > Owner. *Note: The Role field authorizes your service
    account to access resources. You can view and change this field later by using the GCP Console.
    If you are developing a production app, specify more granular permissions than Project > Owner.
    For more information, see granting roles to service accounts.
-  5. Click Create. A JSON file that contains your key downloads to your computer.
-  6. Activate the service account.
-  
+  * Click Create. A JSON file that contains your key downloads to your computer.
+  * Activate the service account.
+
   ```bash
   # E.g.,  gcloud auth activate-service-account ningk-001@ningk-test-project.iam.gserviceaccount.com --key-file=/usr/local/google/home/ningk/gcp_credential.json
   gcloud auth activate-service-account $SERVICE_ACCOUNT_EMAIL --key-file=$JSON_FILE_DOWNLOADED
+  ```
+
+  * In your ~/.bashrc or ~/.bash_profile (MAC OS), add an environment variable
+  
+  ```bash
+  # GCP application credentials
+  export GOOGLE_APPLICATION_CREDENTIALS="$JSON_FILE_DOWNLOADED"
   ```
 
 * Run pipeline on Dataflow
@@ -80,4 +89,15 @@ dependencies {
   # please create your own GCS buckets (e.g., gs://dataflow-eou-diary/staging) under the project and
   # explicitly specify those locations when running the pipeline.
   ./gradlew run --args='--runner=DataflowRunner --project=$YOUR_PROJECT_ID --tempLocation=gs://dataflow-eou-diary/staging --stagingLocation=gs://dataflow-eou-diary/staging'
+  ```
+
+* To view available options that you can pass as args
+
+  ```bash
+  # Shows all the options available. You can register your custom options as
+  # `PipelineOptionsFactory.register(MyOptions.class);` so that they are available in help document.
+  ./gradlew run --args='--help'
+
+  # Shows all Dataflow pipeline options
+  ./gradlew run --args='--help=org.apache.beam.runners.dataflow.options.DataflowPipelineOptions'
   ```
