@@ -1,3 +1,4 @@
 rootProject.name = 'diary'
 
 include 'crypto-research-batch'
+include 'crypto-model'
