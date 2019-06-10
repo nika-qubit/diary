@@ -55,6 +55,7 @@ Install packages in your virtual environment after activating it.
 pip3 install cryptocmd
 pip3 install pandas
 pip3 install crypto-news-api
+pip3 install python-dateutil
 ```
 
 #### Run Script
@@ -66,6 +67,9 @@ pip3 install crypto-news-api
 python3 simple_scraper.py
 ```
 
-You should be able to see 2 files generated:
-* btc_prices.csv
-* btc_news.csv
+You should be able to see 2 files generated for each currency:
+* prices_$CURRENCY_$DATE.csv
+* news_$CURRENCY_$DATE.csv
+
+Collected data might be redundant from day to day, merging and cleaning up need to be done in the
+ beginning of any pipeline using these data.
