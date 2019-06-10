@@ -56,6 +56,7 @@ pip3 install cryptocmd
 pip3 install pandas
 pip3 install crypto-news-api
 pip3 install python-dateutil
+pip3 install vaderSentiment
 ```
 
 #### Run Script
