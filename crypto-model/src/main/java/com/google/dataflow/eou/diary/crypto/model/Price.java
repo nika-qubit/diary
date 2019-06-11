@@ -11,17 +11,20 @@ import java.util.Date;
 @AutoValue
 public abstract class Price implements Serializable {
 
-  private static final Price DEFAULT = create(Date.from(Instant.EPOCH), 0.0, 0.0, 0.0, 0.0, 0l, 0l,
-      Currency.DEFAULT);
+  private static final Price DEFAULT = create(Currency.DEFAULT, Date.from(Instant.EPOCH), 0.0, 0.0,
+      0.0, 0.0, 0l, 0l);
 
-  public static Price create(Date date, double open, double high, double low, double close,
-      long volume, long marketCap, Currency currency) {
-    return new AutoValue_Price(date, open, high, low, close, volume, marketCap, currency);
+  public static Price create(Currency currency, Date date, double open, double high, double low,
+      double close,
+      long volume, long marketCap) {
+    return new AutoValue_Price(currency, date, open, high, low, close, volume, marketCap);
   }
 
   public static Price getDefault() {
     return DEFAULT;
   }
+
+  public abstract Currency currency();
 
   public abstract Date date();
 
@@ -36,6 +39,4 @@ public abstract class Price implements Serializable {
   public abstract long volume();
 
   public abstract long marketCap();
-
-  public abstract Currency currency();
 }

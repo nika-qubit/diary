@@ -72,5 +72,12 @@ You should be able to see 2 files generated for each currency:
 * prices_$CURRENCY_$DATE.csv
 * news_$CURRENCY_$DATE.csv
 
+Copy the files to GCS so that Dataflow can directly read the input files:
+
+```bash
+# -m enables parallel operation 
+gsutil -m cp *.csv gs://dataflow-eou-diary/
+```
+
 Collected data might be redundant from day to day, merging and cleaning up need to be done in the
  beginning of any pipeline using these data.
