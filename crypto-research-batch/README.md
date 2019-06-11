@@ -101,3 +101,55 @@ dependencies {
   # Shows all Dataflow pipeline options
   ./gradlew run --args='--help=org.apache.beam.runners.dataflow.options.DataflowPipelineOptions'
   ```
+  
+  E.g., look up the options defined by CryptoResearchBatch:
+  
+  ```bash
+  ./gradlew run --args='--help=com.google.dataflow.eou.diary.crypto.CryptoResearchBatch$CryptoResearchBatchOptions'
+  ```
+  
+  An example output:
+  
+  ```
+  > Task :run
+  com.google.dataflow.eou.diary.crypto.CryptoResearchBatch$CryptoResearchBatchOptions:
+  
+    --correlationOutput=<String>
+      Default: gs://dataflow-eou-diary/correlation.csv
+      Path to the file to write price change and news sentiment correlation to
+    --currencyPriceChangeOutput=<String>
+      Default: gs://dataflow-eou-diary/price_change_output.csv
+      Path of the file to write price changes to
+    --currencyPriceInputFile=<String>
+      Default: gs://dataflow-eou-diary/prices_*.csv
+      Path of the file to read crypto currency prices from
+    --newsInputFile=<String>
+      Default: gs://dataflow-eou-diary/news_*.csv
+      Path of the file to read news articles from
+  
+  org.apache.beam.sdk.options.PipelineOptions:
+  
+    --jobName=<String>
+      Default: JobNameFactory
+      Name of the pipeline execution.It must match the regular expression
+      '[a-z]([-a-z0-9]{0,38}[a-z0-9])?'.It defaults to
+      ApplicationName-UserName-Date-RandomInteger
+    --optionsId=<long>
+      Default: AtomicLongFactory
+    --runner=<Class>
+      Default: DirectRunner
+      The pipeline runner that will be used to execute the pipeline. For
+      registered runners, the class name can be specified, otherwise the fully
+      qualified name needs to be specified.
+    --stableUniqueNames=<OFF | WARNING | ERROR>
+      Default: WARNING
+      Whether to check for stable unique names on each transform. This is
+      necessary to support updating of pipelines.
+    --tempLocation=<String>
+      A pipeline level default location for storing temporary files.
+    --userAgent=<String>
+      Default: UserAgentFactory
+      A user agent string describing the pipeline to external services. The format
+      should follow RFC2616. This option defaults to "[name]/[version]" where name
+      and version are properties of the Apache Beam release.
+  ```
