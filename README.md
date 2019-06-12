@@ -6,8 +6,8 @@
 * Learn gaps between expectation and user experience
 
 ## Documents (Google Internal Only)
+* [Diary Study](https://docs.google.com/document/d/1osLTzF_Kj8CTZsTQt_t9tFuw2AsvaM34VRZZ5Wk01KA/edit?usp=sharing)
 * [Initial Document](https://docs.google.com/document/d/1yC9JE5OAY65BgLv-z6lOAN1tc2gB9Y4v2QgU-X4zyA4/edit?usp=sharing)
-* [Diary Study](https://docs.google.com/document/d/1yC9JE5OAY65BgLv-z6lOAN1tc2gB9Y4v2QgU-X4zyA4/edit?usp=sharing)
 
 ## Gradle
 ### [Install Gradle](https://gradle.org/install/)
