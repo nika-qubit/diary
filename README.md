@@ -1,64 +1,37 @@
-# Diary Study
-* Dataflow EOU team project from an external user's perspective
-
-## Objective
+# Objective
 * Gain empathy of Dataflow users
 * Learn gaps between expectation and user experience
 
-## Documents (Google Internal Only)
-* [Diary Study](https://docs.google.com/document/d/1osLTzF_Kj8CTZsTQt_t9tFuw2AsvaM34VRZZ5Wk01KA/edit?usp=sharing)
-* [Initial Document](https://docs.google.com/document/d/1yC9JE5OAY65BgLv-z6lOAN1tc2gB9Y4v2QgU-X4zyA4/edit?usp=sharing)
+# General Guide
+* Pick a scenario where a batch/stream pipeline could help solve a real world problem.
+* Plan 1 or 2 iterations of work to create a pipeline with Beam SDK and run on Dataflow.
+* Document how the study is carried out as a diary.
+* Document project and usage of the project.
+* File tickets for issues and suggest improvements of Beam and Dataflow.
 
-## Gradle
-### [Install Gradle](https://gradle.org/install/)
-The project uses the newest Gradle version up to date (v5.4.1).
-Please check your Gradle version and make sure it's newer when adding new Gradle projects.
-If apt/apt-get cannot offer a newer version of Gradle and you cannot use homebrew, please use
- SDKMAN!.
-Install SDKMAN!:
+A planning tool (e.g., Planr, Buganizer or JIRA), a version control tool (e.g., Piper or Git) and
+detailed project/user/study documentation (e.g., in Google Docs or Github pages) are recommended.
+When encountering issues with Beam and Dataflow, if an external customer, feel free to reach out to
+the communities; if an internal developer, reach out to the dataflow team.
 
-```bash
-curl -s "https://get.sdkman.io" | bash
-```
+The outcome should be improving Beam/Dataflow user experience and having an evolving community (both
+external and internal) to help with it.
 
-Then Install Gradle:
-
-```bash
-sdk install gradle
-```
-
+# Quickstart with Example - Cryptocurrency Research
+Research the correlation between crypto currencies' price change and their news sentiment.
+* [Gradle Instructions](https://kevingg.github.io/diary/docs/gradle)\
+  This example uses Gradle to build and run. Build scan has been setup to always publish so you can
+  check the build performance from the short link after each build. The document describes basic
+  Gradle installation and usage.
+* [Collect Crypto Currency Price and News Data](https://kevingg.github.io/diary/crypto-ingest/)\
+  This example uses python script to collect data from the Internet. There is no guarantee that such
+  script won't stop working in the future. The document describes basic Python3, pip3 and virtualenv
+  usage with dependencies the script needs.
+* [Build a Batch Pipeline to Analyze the Correlation](https://kevingg.github.io/diary/crypto-research-batch/)\
+  This example uses Java Beam SDK with direct runner and dataflow runner. The document describes
+  minimum dependencies needed for pipeline development and execution with supplemental instructions
+  of running pipeline with Gradle, authenticating with service account and exploring pipeline 
+  options.
+* [Diary](https://kevingg.github.io/diary/docs/crypto-diary)\
+  The document shows an example of carrying out and recording diary study for future contributors.
  
-### Init a new directory with Gradle
-Don't do this if you are working on an existing Gradle project.
-
-```bash
-gradle init
-```
-
-The Gradle wrapper, gradlew, will use the version of your Gradle CLI.
-
-To upgrade wrapper (e.g., to v5.4.1) even when you don't have a gradle installed:
-
-```bash
-./gradlew wrapper --gradle-version 5.4.1
-```
-
-### Build
-If a package/directory/folder contains gradle projects already:
-
-```bash
- ./gradlew build
-```
-
-Note not to use the gradle you have installed in your environment.
-You should always use ./gradlew (the Gradle wrapper) to work with existing projects.
-This approach isolates your runtime from the repo's configuration and thus other contributors.
-
-This diary study has already setup build scan automatically for all sub projects. The scanned result
-is always published and can be accessed from the short link you get after each build.
-
-### Dependencies
-For users who are only familiar with Maven, finding a corresponding Gradle dependency is fairly
- easy. You can search the artifact you desire in [search.maven.org](https://search.maven.org). You
- can also configure the search engine as *"https://search.maven.org/search?q=%s"* if you use chrome
- browser or browser with similar functionality.
