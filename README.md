@@ -19,19 +19,19 @@ external and internal) to help with it.
 
 # Quickstart with Example - Cryptocurrency Research
 Research the correlation between crypto currencies' price change and their news sentiment.
-* [Gradle Instructions](https://kevingg.github.io/diary/docs/gradle)\
+* [Gradle Instructions](https://kevingg.github.io/diary/docs/gradle)
   This example uses Gradle to build and run. Build scan has been setup to always publish so you can
   check the build performance from the short link after each build. The document describes basic
   Gradle installation and usage.
-* [Collect Crypto Currency Price and News Data](https://kevingg.github.io/diary/crypto-ingest/)\
+* [Collect Crypto Currency Price and News Data](https://kevingg.github.io/diary/crypto-ingest/)
   This example uses python script to collect data from the Internet. There is no guarantee that such
   script won't stop working in the future. The document describes basic Python3, pip3 and virtualenv
   usage with dependencies the script needs.
-* [Build a Batch Pipeline to Analyze the Correlation](https://kevingg.github.io/diary/crypto-research-batch/)\
+* [Build a Batch Pipeline to Analyze the Correlation](https://kevingg.github.io/diary/crypto-research-batch/)
   This example uses Java Beam SDK with direct runner and dataflow runner. The document describes
   minimum dependencies needed for pipeline development and execution with supplemental instructions
   of running pipeline with Gradle, authenticating with service account and exploring pipeline 
   options.
-* [Diary](https://kevingg.github.io/diary/docs/crypto-diary)\
+* [Diary](https://kevingg.github.io/diary/docs/crypto-diary)
   The document shows an example of carrying out and recording diary study for future contributors.
  

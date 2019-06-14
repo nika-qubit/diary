@@ -112,13 +112,16 @@ need to be run manually once in a while though batch pipeline can handle such du
 
 ## Diary
 Modularized the script to collect all prices and news information for all crypto currencies by day.
-Thus at the end of any day, the script is idempotent.\
+Thus at the end of any day, the script is idempotent.
+
 Pull Request: https://github.com/KevinGG/diary/commit/39b925a49f04ae2d9d55906485556ab216f422f6
 
 Looking for open source dependency that can extract news sentiment scores from news title or 
 content. Decided to use [vaderSentiment](http://t-redactyl.io/blog/2017/04/using-vader-to-handle-sentiment-analysis-with-social-media-text.html)
-:\
-![http://t-redactyl.io/blog/2017/04/using-vader-to-handle-sentiment-analysis-with-social-media-text.html](http://t-redactyl.io/figure/Vader_1.jpg)\
+:
+
+![http://t-redactyl.io/blog/2017/04/using-vader-to-handle-sentiment-analysis-with-social-media-text.html](http://t-redactyl.io/figure/Vader_1.jpg)
+
 Using vaderSentiment module to analyze news title and lead and get sentiment scores.
 The scores are negative value, neutral value, positive value and compound value.
 We'll use compound for future analysis.
@@ -183,7 +186,7 @@ algorithm) of recent (about last week) news. The sentiment should be a range of 
 
 We have the price percentile and value changes. With additional new sentiment value on each day, we 
 can correlate them. Let x-axis be sentiment value and y-axis be price changes. We can have many 
-different fun ways to render the data:\
+different fun ways to render the data:
 * Log or square
 * Abs
 
