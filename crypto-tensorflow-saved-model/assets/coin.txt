@@ -1,0 +1,6 @@
+BTC
+DASH
+DOGE
+NEO
+XRP
+ZEC

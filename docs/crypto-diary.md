@@ -102,6 +102,9 @@ If we take Bitcoin only, this characteristic still retends:
 need to be run manually once in a while though batch pipeline can handle such duplicated inputs.
 * We could use a better sentiment analysis model.
 * We could do machine learning with the correlation data.
+  * A saved trained tensorflow model is provided at crypto-tensorflow-saved-model that could predict
+  change_percentile from coin, date, sentiment_neg, sentiment_neu, sentiment_pos and
+  sentiment_compound.
  
 # 06/10/2019
 
