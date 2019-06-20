@@ -30,7 +30,7 @@ ask+help the user to cancel existing pipeline when they start a new one with sim
 under the same project.
 ```
 
-Completed pipeline
+Completed pipeline.
 Pull Request: https://github.com/KevinGG/diary/commit/6914a3741b4914703da19695e4bc2bdc8785a8cc
 
 Build a static doc hosted on Github:
@@ -42,8 +42,8 @@ Build a static doc hosted on Github:
 ## Conclusion
 ### Study Outcome for Beam and Dataflow
 * Several suggestions as listed in the diary, including go/dataflow-eou-diary-ningk-initial from
-running Beam and Dataflow quickstart.
-* A Gradle based pipeline example compared to existing Maven examples on Beam and Dataflow 
+running Beam and Dataflow quickstart. See [Tickets Created](https://www.google.com/url?q=https://b.corp.google.com/issues?q%3Dreporter:ningk@google.com%2520%255BDiary%2520Study%255D%2520componentid:593447&sa=D&ust=1561076032663000&usg=AFQjCNHFLCi1qlI1ozbgT9LCQqeYkv_aFg).
+* A Gradle based pipeline example additional to existing Maven examples on Beam and Dataflow 
 quickstart.
 * I (ningk) have gained some user empathy.
 
@@ -217,10 +217,10 @@ avoid GCS bucket anonymous caller permission issue when Dataflow service uses de
 
 Added --help command instructions for users to explore available options in terminal.
 
-The current diary repo should already solved several difficulties I’ve encountered in 
-go/dataflow-eou-diary-ningk-initial, such as building with Gradle and authentication.
+The current diary repo should already solved several [difficulties](go/dataflow-eou-diary-ningk-initial)
+I’ve encountered in Beam and Dataflow quickstart, such as building with Gradle and authentication.
 
-**[Suggestion - b/131697271, initiated by Sam]** 
+**[Suggestion - b/131697271, initiated by Sam]**
 
 ```
 When reading a csv file, 
