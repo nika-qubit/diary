@@ -8,7 +8,7 @@ Using docker to serve the model:
 ```bash
 mkdir -p /tmp/crypto/1/
 cd crypto-tensorflow-saved-model
-cp * /tmp/crypto/1/
+cp -r * /tmp/crypto/1/
 docker run -p 8500:8500 -p 8501:8501 --mount type=bind,source=/tmp/crypto,target=/models/crypto  -e MODEL_NAME=crypto -t tensorflow/serving &
 ```
 
