@@ -1,3 +1,5 @@
+import sys
+import traceback
 import csv
 from datetime import datetime
 from datetime import timedelta
@@ -11,7 +13,7 @@ import requests
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # https://github.com/guptarohit/cryptoCMD
-from_date = "28-04-2018"
+from_date = "01-01-2020"
 to_date = datetime.now().strftime('%d-%m-%Y')
 
 # Hutto, C.J. & Gilbert, E.E. (2014). VADER: A Parsimonious Rule-based Model for
@@ -135,14 +137,23 @@ coins = {
     "eos": "eos.io"
 }
 for code in coins:
-  print ("Coin code: %s, tag: %s" % (code, coins[code]))
+  print("Coin code: %s, tag: %s" % (code, coins[code]))
   try:
-    ScrapePrices(code)
-  except Exception as exception:
-    print ("Failed to collect prices data for coin code: %s, tag: %s."
-           " Exception %s" % (code, coins[code], exception))
+    ScrapePrices(code.upper())
+  except (KeyboardInterrupt, SystemExit):
+    raise
+  except:
+    print("Failed to collect prices data for coin code: %s, tag: %s."
+           % (code, coins[code]))
+    _, _, exc_traceback = sys.exc_info()
+    traceback.print_tb(exc_traceback)
   try:
     ScrapeNews(code, coins[code])
-  except Exception as exception:
-    print ("Failed to collect news data for coin code: %s, tag: %s."
-           " Exception %s" % (code, coins[code], exception))
+  except (KeyboardInterrupt, SystemExit):
+    raise
+  except:
+    print("Failed to collect news data for coin code: %s, tag: %s."
+           % (code, coins[code]))
+    _, _, exc_traceback = sys.exc_info()
+    traceback.print_tb(exc_traceback)
+
