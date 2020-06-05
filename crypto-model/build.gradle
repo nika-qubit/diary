@@ -12,7 +12,13 @@ dependencies {
     // Google AutoValue
     annotationProcessor 'com.google.auto.value:auto-value:1.6.5'
     compile 'com.google.auto.value:auto-value-annotations:1.6.5'
+    
+    // https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api
+    compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
 
+    // https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime
+    compile group: 'org.glassfish.jaxb', name: 'jaxb-runtime', version: '3.0.0-M4'
+    
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
 }

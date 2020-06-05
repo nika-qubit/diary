@@ -13,6 +13,8 @@ There are Maven documents of Beam and runner dependencies in
  [Beam Quickstart](https://beam.apache.org/get-started/quickstart-java/). The following instructions
  are for Gradle users only.
 
+Note Beam Java SDK **requires Java 8** to work.
+
 ```groovy
 dependencies {
   // Beam SDK
