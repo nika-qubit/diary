@@ -27,18 +27,12 @@ dependencies {
     // https://search.maven.org/artifact/org.slf4j/slf4j-jdk14/1.7.26/jar
     implementation 'org.slf4j:slf4j-jdk14:1.7.26'
 
-    // Guava
-    compile group: 'com.google.guava', name: 'guava', version: '23.5-jre'
-
-    // Source from other sub projects
-    compile project(':crypto-model')
-
     // https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api
     compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
 
     // https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime
     compile group: 'org.glassfish.jaxb', name: 'jaxb-runtime', version: '3.0.0-M4'
-     
+
     testCompile 'junit:junit:4.12'
 }
 
@@ -49,4 +43,4 @@ jar {
     }
 }
 
-mainClassName = 'com.google.dataflow.eou.diary.crypto.CryptoResearchBatch'
+mainClassName = 'com.google.dataflow.eou.diary.playground.Playground'
