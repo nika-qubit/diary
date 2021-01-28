@@ -18,7 +18,7 @@ dependencies {
     compile group: 'org.apache.beam', name: 'beam-sdks-java-extensions-google-cloud-platform-core', version: '2.20.0'
 
     // https://mvnrepository.com/artifact/org.apache.beam/beam-runners-direct-java
-    testCompile group: 'org.apache.beam', name: 'beam-runners-direct-java', version: '2.20.0'
+    compile group: 'org.apache.beam', name: 'beam-runners-direct-java', version: '2.20.0'
 
     // https://mvnrepository.com/artifact/org.apache.beam/beam-runners-google-cloud-dataflow-java
     compile group: 'org.apache.beam', name: 'beam-runners-google-cloud-dataflow-java', version: '2.20.0'
