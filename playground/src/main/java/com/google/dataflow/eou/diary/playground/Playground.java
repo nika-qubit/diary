@@ -1,5 +1,6 @@
 package com.google.dataflow.eou.diary.playground;
 
+import com.google.dataflow.eou.diary.playground.Dummy;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -9,8 +10,12 @@ import org.apache.beam.sdk.transforms.GroupByKey;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
-
-import java.io.Serializable;
+import com.google.cloud.datastore.Datastore;
+import com.google.cloud.datastore.DatastoreOptions;
+import com.google.cloud.datastore.EntityQuery;
+import com.google.cloud.datastore.Query;
+import com.google.cloud.datastore.StructuredQuery;
+import com.google.cloud.datastore.StructuredQuery.PropertyFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,37 +25,31 @@ public class Playground {
 
   public Pipeline buildPipeline(PipelineOptions options) {
     Pipeline p = Pipeline.create(options);
-
-    final List<Person> personList = Arrays.asList(new Person[]{
-        new Person("20200101", "1", "1"),
-        new Person("20200202", "2", "1"),
-        new Person("20200303", "3", "1")
-    });
-
-    final List<Person> personList2 = Arrays.asList(new Person[]{
-        new Person("20200101", "1", "2"),
-        new Person("20200202", "2", "2"),
-        new Person("20200303", "3", "2")
-    });
-
-    List<List<Person>> personListList = new ArrayList<List<Person>>();
-    personListList.add(personList);
-    personListList.add(personList2);
-
-    PCollection<List<Person>> person = p.apply(Create.of(personListList));
-    PCollection<KV<String, List<Person>>> personByCompany = person.apply(ParDo.of(new MarkPersonListByCompany()));
-    PCollection<KV<String, Iterable<List<Person>>>> personGroupedByCompany = personByCompany.apply(GroupByKey.<String, List<Person>>create());
-    return p;
-
-  }
-
-  public static class MarkPersonListByCompany extends DoFn<List<Person>, KV<String, List<Person>>> {
-
-    @ProcessElement
-    public void processElement(ProcessContext c) {
-      c.output(KV.of(c.element().get(0).companyId(), c.element()));
+    
+    List<Dummy> dummies = new ArrayList<>();
+    for (int i=0; i < 50000; i++) {
+      dummies.add(Dummy.create("lol"));
     }
 
+    PCollection<Dummy> dummyPColl = p.apply("Create Dummies", Create.of(dummies));
+    dummyPColl.apply(ParDo.of(new DsQueryTest()));
+    return p;
+  }
+
+  public static class DsQueryTest extends DoFn<Dummy, Void> {
+    private Datastore datastore;
+
+    @Setup
+    public void initialize() throws Exception {
+      datastore = DatastoreOptions.newBuilder().setProjectId("ningk-test-project").build().getService(); 
+    }
+
+    @ProcessElement
+    public void processElement(ProcessContext processContext) {
+      EntityQuery.Builder queryBuilder = Query.newEntityQueryBuilder().setKind("Dummy");
+      queryBuilder.setFilter(PropertyFilter.eq("name", processContext.element().getName()));
+      datastore.run(queryBuilder.build());
+    }
   }
 
   public static void main(String[] args) {
@@ -59,52 +58,4 @@ public class Playground {
   }
 }
 
-class Person implements Serializable {
-  public Person(
-      String businessDay,
-      String departmentId,
-      String companyId
-  ) {
-    this.businessDay = businessDay;
-    this.departmentId = departmentId;
-    this.companyId = companyId;
-  }
 
-  public String companyId() {
-    return companyId;
-  }
-
-  public String businessDay() {
-    return businessDay;
-  }
-
-  public String departmentId() {
-    return departmentId;
-  }
-
-  @Override
-  public boolean equals(Object other) {
-    if (this == other) {
-      return true;
-    }
-    if (other == null) {
-      return false;
-    }
-    if (getClass() != other.getClass()) {
-      return false;
-    }
-    Person otherPerson = (Person) other;
-    return this.businessDay.equals(otherPerson.businessDay)
-        && this.departmentId.equals(otherPerson.departmentId)
-        && this.companyId.equals(otherPerson.companyId);
-  }
-
-  @Override
-  public int hashCode(){
-    return Objects.hash(this.businessDay, this.departmentId, this.companyId);
-  }
-
-  private final String businessDay;
-  private final String departmentId;
-  private final String companyId;
-}
