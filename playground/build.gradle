@@ -9,17 +9,19 @@ repositories {
 }
 
 dependencies {
-    // Beam SDK
-    // https://search.maven.org/artifact/org.apache.beam/beam-sdks-java-core/2.12.0/jar
-    implementation 'org.apache.beam:beam-sdks-java-core:2.19.0'
+    annotationProcessor 'com.google.auto.value:auto-value:1.6.5'
+    compile 'com.google.auto.value:auto-value-annotations:1.6.5'
+    // https://mvnrepository.com/artifact/org.apache.beam/beam-sdks-java-core
+    compile group: 'org.apache.beam', name: 'beam-sdks-java-core', version: '2.20.0'
 
-    // Beam direct runner
-    // https://search.maven.org/artifact/org.apache.beam/beam-runners-direct-java/2.13.0/jar
-    implementation 'org.apache.beam:beam-runners-direct-java:2.19.0'
+    // https://mvnrepository.com/artifact/org.apache.beam/beam-sdks-java-extensions-google-cloud-platform-core
+    compile group: 'org.apache.beam', name: 'beam-sdks-java-extensions-google-cloud-platform-core', version: '2.20.0'
 
-    // Google Cloud Dataflow runner
-    // https://search.maven.org/artifact/org.apache.beam/beam-runners-google-cloud-dataflow-java/2.13.0/jar
-    implementation 'org.apache.beam:beam-runners-google-cloud-dataflow-java:2.19.0'
+    // https://mvnrepository.com/artifact/org.apache.beam/beam-runners-direct-java
+    testCompile group: 'org.apache.beam', name: 'beam-runners-direct-java', version: '2.20.0'
+
+    // https://mvnrepository.com/artifact/org.apache.beam/beam-runners-google-cloud-dataflow-java
+    compile group: 'org.apache.beam', name: 'beam-runners-google-cloud-dataflow-java', version: '2.20.0'
 
     // slf4j
     // https://search.maven.org/artifact/org.slf4j/slf4j-api/1.7.26/jar
@@ -27,12 +29,16 @@ dependencies {
     // https://search.maven.org/artifact/org.slf4j/slf4j-jdk14/1.7.26/jar
     implementation 'org.slf4j:slf4j-jdk14:1.7.26'
 
-    // https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api
-    compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
-
-    // https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime
-    compile group: 'org.glassfish.jaxb', name: 'jaxb-runtime', version: '3.0.0-M4'
-
+    implementation platform('com.google.cloud:libraries-bom:16.3.0')
+    compile 'com.google.cloud:google-cloud-datastore'
+    // https://mvnrepository.com/artifact/com.google.cloud/google-cloud-datastore
+    // compile group: 'com.google.cloud', name: 'google-cloud-datastore', version: '1.105.7'
+    // https://mvnrepository.com/artifact/com.google.guava/guava
+    implementation("com.google.guava:guava") {
+      version {
+        strictly '30.1-jre'
+      }
+    }
     testCompile 'junit:junit:4.12'
 }
 
