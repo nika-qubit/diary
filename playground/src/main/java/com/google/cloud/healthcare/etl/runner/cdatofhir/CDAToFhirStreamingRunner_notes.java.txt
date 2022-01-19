@@ -1,0 +1,627 @@
+//
+//
+// Copyright 2020 Google LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+package com.google.cloud.healthcare.etl.runner.cdatofhir;
+/*
+import com.google.cloud.healthcare.etl.model.converter.ErrorEntryConverter;
+import com.google.cloud.healthcare.etl.model.mapping.MappedFhirMessageWithSourceTimeCoder;
+*/
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+
+import com.google.cloud.healthcare.etl.model.ErrorEntry;
+import com.google.cloud.healthcare.etl.model.converter.ErrorEntryConverter;
+import com.google.cloud.healthcare.etl.model.mapping.HclsApiCDAr2MappableMessage;
+import com.google.cloud.healthcare.etl.model.mapping.HclsApiCDAr2MappableMessageCoder;
+import com.google.cloud.healthcare.etl.model.mapping.MappedFhirMessageWithSourceTimeCoder;
+import com.google.cloud.healthcare.etl.model.mapping.MappingOutput;
+import com.google.cloud.healthcare.etl.pipeline.MappingFn;
+import com.google.cloud.healthcare.etl.pipeline.ReadPubSubFn;
+import org.apache.beam.sdk.values.TypeDescriptors;
+
+import com.google.cloud.healthcare.etl.xmltojson.XmlToJsonException;
+import org.apache.beam.sdk.io.FileIO;
+import org.apache.beam.sdk.io.fs.EmptyMatchTreatment;
+import org.apache.beam.sdk.io.gcp.healthcare.FhirIO;
+import org.apache.beam.sdk.io.gcp.healthcare.HealthcareIOError;
+import org.apache.beam.sdk.io.gcp.healthcare.HealthcareIOErrorToTableRow;
+import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
+import org.apache.beam.sdk.options.PipelineOptions;
+import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.options.ValueProvider;
+import org.apache.beam.sdk.options.Validation.Required;
+//import org.apache.beam.runners.dataflow.options.PipelineOptions;
+import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.coders.StringUtf8Coder;
+import org.apache.beam.sdk.extensions.gcp.options.GcpOptions;
+
+import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.values.KV;
+/*
+import org.apache.beam.sdk.io.gcp.healthcare.FhirIO;
+import org.apache.beam.sdk.io.gcp.healthcare.FhirIOWithMetrics;
+import org.apache.beam.sdk.io.gcp.healthcare.HL7v2IO;
+import org.apache.beam.sdk.io.gcp.healthcare.HL7v2Message;
+import org.apache.beam.sdk.io.gcp.healthcare.HealthcareIOError;
+import org.apache.beam.sdk.io.gcp.healthcare.HealthcareIOErrorToTableRow;
+import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
+*/
+import org.apache.beam.sdk.options.Default;
+import org.apache.beam.sdk.options.Description;
+
+import org.apache.beam.sdk.transforms.Contextful;
+//import org.apache.beam.sdk.options.PipelineOptionsFactory;
+//import org.apache.beam.sdk.options.Validation.Required;
+import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.MapElements;
+import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.SerializableFunction;
+import org.apache.beam.sdk.transforms.SimpleFunction;
+import org.apache.beam.sdk.transforms.windowing.AfterProcessingTime;
+import org.apache.beam.sdk.transforms.windowing.FixedWindows;
+import org.apache.beam.sdk.transforms.windowing.Repeatedly;
+import org.apache.beam.sdk.transforms.windowing.Window;
+import org.apache.beam.sdk.values.PCollection;
+import org.apache.beam.sdk.values.PCollectionTuple;
+import org.apache.beam.sdk.values.POutput;
+import org.apache.beam.sdk.values.TupleTagList;
+import org.apache.beam.sdk.values.TypeDescriptor;
+import org.apache.beam.sdk.values.TypeDescriptors;
+import org.joda.time.Duration;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.apache.beam.repackaged.core.org.apache.commons.compress.utils.FileNameUtils;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import com.google.cloud.healthcare.etl.pipeline.CCDAParsingFn;
+import com.google.cloud.healthcare.etl.pipeline.ExtractXMLFn;
+
+import static com.google.cloud.healthcare.etl.model.ErrorEntry.ERROR_ENTRY_TAG;
+import static com.google.cloud.healthcare.etl.pipeline.MappingFn.MAPPING_TAG;
+import static com.google.cloud.healthcare.etl.pipeline.CCDAParsingFn.CCDAPARSING_TAG;
+import static com.google.cloud.healthcare.etl.pipeline.ReadPubSubFn.READING_TAG;
+import static com.google.cloud.healthcare.etl.pipeline.ExtractXMLFn.EXTRACTINGXML_TAG;
+
+import com.google.cloud.healthcare.etl.util.library.CHFLogWriter;
+import com.google.cloud.healthcare.etl.util.library.CHFLogConfigurations;
+
+/**
+ * The entry point of the pipeline. Right now the pipeline has 3 components,
+ * HL7v2 IO, mapping function, and FHIR IO. The code for the IOs are shipped
+ * within this project before next Beam release.
+ *
+ * <p>
+ * The errors for each component are handled separately, e.g. you can specify
+ * file paths for each of the stage (read - HL7v2 IO, mapping, write - FHIR IO).
+ * Right now the shard is set to 1, if you are seeing issues with regard to
+ * writing to GCS, feel free to bump it up to a reasonable value.
+ *
+ * <p>
+ * Currently message ids are not passed along to the mapping function. An
+ * upcoming update will fix this.
+ */
+public class CDAToFhirStreamingRunner {
+    // TODO(b/155226578): add more sophisticated validations.
+
+    /**
+     * Pipeline options.
+     */
+    public interface CDAPipelineOptions extends PipelineOptions {
+        @Description("The PubSub subscription to listen to, must be of the full format: "
+                + "projects/project_id/subscriptions/subscription_id.")
+        @Required
+        String getPubSubSubscription();
+
+        void setPubSubSubscription(String subSubscription);
+
+        @Description("Path of the Bucket to read from")
+        @Required
+        ValueProvider<String> getInputBucket();
+
+        void setInputBucket(ValueProvider<String> value);
+
+        /* RA Added */
+        @Description("Path of the file to read from")
+        ValueProvider<String> getInputFile();
+
+        void setInputFile(ValueProvider<String> value);
+
+        @Description("Path of the file to write to")
+        ValueProvider<String> getOutput();
+
+        void setOutput(ValueProvider<String> value);
+
+        @Description("The path to the mapping configurations. The path will be treated as a GCS path if the"
+                + " path starts with the GCS scheme (\"gs\"), otherwise a local file. Please see: "
+                + "https://github.com/GoogleCloudPlatform/healthcare-data-harmonization/blob/baa4e0c7849413f7b44505a8410ee7f52745427a/mapping_configs/README.md"
+                + " for more details on the mapping configuration structure.")
+        String getMappingPath();
+
+        void setMappingPath(String gcsPath);
+
+        @Description("The target FHIR Store to write data to, must be of the full format: "
+                + "projects/project_id/locations/location/datasets/dataset_id/fhirStores/fhir_store_id")
+        @Required
+        String getFhirStore();
+
+        void setFhirStore(String fhirStore);
+
+        @Description("The path that is used to record all write errors. The path will be "
+                + "treated as a GCS path if the path starts with the GCS scheme (\"gs\"), otherwise a " + "local file.")
+        @Required
+        String getWriteErrorPath();
+
+        void setWriteErrorPath(String writeErrorPath);
+
+        @Description("The path that is used to record all mapping errors. The path will be "
+                + "treated as a GCS path if the path starts with the GCS scheme (\"gs\"), otherwise a " + "local file.")
+        @Required
+        String getMappingErrorPath();
+
+        void setMappingErrorPath(String mappingErrorPath);
+
+        @Description("The number of shards when writing errors to GCS.")
+        @Default.Integer(10)
+        Integer getErrorLogShardNum();
+
+        void setErrorLogShardNum(Integer shardNum);
+
+        @Description("Output file's window size in number of minutes.")
+        @Default.Integer(1)
+        Integer getWindowSize();
+
+        void setWindowSize(Integer value);
+
+        @Description("App Name, eg, CHF-Streaming")
+        // @Default.String("CHF-Streaming")
+        String getAppName();
+
+        void setAppName(String appName);
+
+        @Description("Workstream Project name, eg EPIC")
+        // @Default.String("EPIC")
+        String getWorkstreamName();
+
+        void setWorkstreamName(String workstreamName);
+    }
+
+    private static Duration ERROR_LOG_WINDOW_SIZE = Duration.standardSeconds(5);
+
+    // private static final Logger LOGGER =
+    // Logger.getLogger(CDAToFhirStreamingRunner.class.getName());
+    private static final CHFLogConfigurations CHFLogConfig = new CHFLogConfigurations();
+
+    // createPipeline returns a HL7v2 to FHIR streaming pipeline without run. The
+    // integration test
+    // can then start and terminate the created pipeline whenever needed.
+    public static Pipeline createPipeline(String[] args)
+            throws XmlToJsonException, UnsupportedEncodingException, IOException {
+        CDAPipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation()
+                .as(CDAPipelineOptions.class);
+        Pipeline pipeline = Pipeline.create(options);
+
+        final SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd_HHmmss");
+
+        // use later for configurations
+        final String errOutputPath = options.getWriteErrorPath();
+
+        // setting pipeline-level log configurations
+        CHFLogConfig.setAppName(options.getAppName());
+        CHFLogConfig.setGCPProjectName(options.as(GcpOptions.class).getProject());
+        CHFLogConfig.setWorkstreamName(options.getWorkstreamName());
+        CHFLogConfig.setErrorPath(options.getWriteErrorPath());
+
+
+        final List<String> inputFiles = new ArrayList<String>();
+
+        ////////////////////////////////////////////////
+        ////////////////////////////////////////////////
+        /* RA Added */
+        /*
+         * final PCollection<KV<String, String>> readResult = pipeline
+         * .apply("Get File", TextIO.read().from(options.getInputFile()))
+         * .apply("Read XML",
+         * MapElements.into(TypeDescriptors.kvs(TypeDescriptors.strings(),
+         * TypeDescriptors.strings())) .via((final String s) -> { final String dt =
+         * formatter.format(new Date()); final List<String> errorFiles = new
+         * ArrayList<String>();
+         * 
+         * String inputFilePath = inputPath + "/input_"+s.length()+".json"; String
+         * errorFilePath = CHFLogConfig.getErrorPath()+"/reader/err_" + dt + "_" +
+         * s.length() + ".json";
+         * 
+         * Collections.addAll(inputFiles, inputFilePath); Collections.addAll(errorFiles,
+         * errorFilePath);
+         * 
+         * CHFLogConfig.setInputFiles(inputFiles); CHFLogConfigurations readingLog =
+         * CHFLogConfig.clone(); readingLog.setErrorFiles(errorFiles);
+         * readingLog.setMethodName("ReadXml");
+         * 
+         * final String message = "reading XML of length: " + (s.length());
+         * CHFLogWriter.writeLog(Level.INFO, message, readingLog); return
+         * KV.of(inputFilePath, s); }));
+         * 
+         * /* End of RA Added
+         */
+        ////////////////////////////////////////////////
+        ////////////////////////////////////////////////
+
+        // RA Added Comments
+
+        PCollection<String> readPubSubMsg = pipeline.apply("ReadPubSub",
+                PubsubIO.readStrings().fromSubscription(options.getPubSubSubscription()));
+
+        
+        ReadPubSubFn readPubSubFn = ReadPubSubFn.of(options.getInputBucket().get());
+
+        CHFLogConfigurations readingLog = CHFLogConfig.clone();
+        readingLog.setMethodName("GetFilePathFromPubSub");
+        readPubSubFn.setCHFLogConfigs(readingLog);
+        
+        PCollection<String> filepaths = readPubSubMsg.apply("GetFilePath", ParDo.of(readPubSubFn));
+
+        /*
+         * PCollection<String> filepaths = readPubSubMsg.apply("GetFilePath", ParDo
+         * .of(new DoFn<String, String>() {
+         * 
+         * @ProcessElement public void processElement(ProcessContext c) throws
+         * XmlToJsonException { final Logger LOGGER =
+         * LoggerFactory.getLogger(CDAToFhirStreamingRunner.class); String outPath = "";
+         * try { JSONObject jsonObject = new JSONObject(c.element()); outPath = inputBkt
+         * + jsonObject.getString("name"); } catch (JSONException e) {
+         * LOGGER.error("JSONException", ExceptionUtils.getStackTrace(e)); } catch
+         * (RuntimeException e) { LOGGER.error("RuntimeException",
+         * ExceptionUtils.getStackTrace(e)); } c.output(outPath); } }));
+         */
+
+        // START FOR TESTING - WRITE DATA INTO OUTPUT
+        // filepaths.apply(Window.into(FixedWindows.of(Duration.standardMinutes(options.getWindowSize()))))
+        // .apply("WriteTest",
+        // TextIO.write().to(options.getOutput()).withWindowedWrites().withNumShards(1));
+        // END FOR TESTING - WRITE DATA INTO OUTPUT
+
+        // implement a function to read
+        // RA Added
+        /*
+         * PCollection<KV<String, String>> readResult = filepaths
+         * .apply(FileIO.matchAll().withEmptyMatchTreatment(EmptyMatchTreatment.ALLOW))
+         * .apply(FileIO.readMatches()) .apply(MapElements
+         * .into(TypeDescriptors.kvs(TypeDescriptors.strings(),
+         * TypeDescriptors.strings())) .via((ReadableFile f) -> {
+         * CHFLogWriter.writeLog(Level.INFO, "reading file", CHFLogConfig); //final
+         * Logger LOGGER = LoggerFactory.getLogger(CDAToFhirStreamingRunner.class); try
+         * { return KV.of( f.getMetadata().resourceId().toString(),
+         * f.readFullyAsUTF8String()); } catch (IOException e) {
+         * CHFLogWriter.writeLog(Level.SEVERE,
+         * "IO Exception"+ExceptionUtils.getStackTrace(e), CHFLogConfig); } catch
+         * (RuntimeException e) { CHFLogWriter.writeLog(Level.SEVERE,
+         * "RuntimeException"+ExceptionUtils.getStackTrace(e), CHFLogConfig); } return
+         * null; }));
+         */
+        ExtractXMLFn extractXMLFn = ExtractXMLFn.of();
+        CHFLogConfigurations extractLog = CHFLogConfig.clone();
+        extractLog.setMethodName("ReadXML");
+        readPubSubFn.setCHFLogConfigs(extractLog);
+        PCollectionTuple readResult = filepaths
+                .apply(FileIO.matchAll().withEmptyMatchTreatment(EmptyMatchTreatment.ALLOW)).apply(FileIO.readMatches())
+                .apply("ReadXML",
+                        ParDo.of(extractXMLFn).withOutputTags(EXTRACTINGXML_TAG, TupleTagList.of(ERROR_ENTRY_TAG)));
+        /*
+         * .apply(MapElements .into(TypeDescriptors.kvs(TypeDescriptors.strings(),
+         * TypeDescriptors.strings())) .via((ReadableFile f) -> {
+         * CHFLogWriter.writeLog(Level.INFO, "reading file", CHFLogConfig); try { return
+         * KV.of( f.getMetadata().resourceId().toString(), f.readFullyAsUTF8String()); }
+         * catch (IOException e) { CHFLogWriter.writeLog(Level.SEVERE,
+         * "IO Exception"+ExceptionUtils.getStackTrace(e), CHFLogConfig); } catch
+         * (RuntimeException e) { CHFLogWriter.writeLog(Level.SEVERE,
+         * "RuntimeException"+ExceptionUtils.getStackTrace(e), CHFLogConfig); } return
+         * null; }));
+         */
+        readResult.get(ERROR_ENTRY_TAG).apply("SerializeParsingErrors", MapElements
+                .into(TypeDescriptors.kvs(TypeDescriptors.strings(), TypeDescriptors.strings())).via((ErrorEntry e) -> {
+                    String errorPath = "";
+                    if (e.getErrorFiles() != null && e.getErrorFiles().size() > 0) {
+                        errorPath = e.getErrorFiles().get(0);
+                    }
+                    // else if(e.getErrorFilePath() != null) {
+                    // errorPath = e.getErrorFilePath();
+                    // }
+                    return KV.of(errorPath, ErrorEntryConverter.toJsonObject(e).toString());
+                }))
+                .apply(Window.<KV<String, String>>into(FixedWindows.of(ERROR_LOG_WINDOW_SIZE))
+                        .triggering(Repeatedly.forever(
+                                AfterProcessingTime.pastFirstElementInPane().plusDelayOf(ERROR_LOG_WINDOW_SIZE)))
+                        .withAllowedLateness(Duration.ZERO).discardingFiredPanes())
+                .apply("Writing Parsing error", FileIO.<String, KV<String, String>>writeDynamic().by(x -> x.getKey())
+                        .withDestinationCoder(StringUtf8Coder.of()).via(Contextful.fn(y -> y.getValue()), TextIO.sink())
+                        .to(errOutputPath).withNaming(key -> FileIO.Write.defaultNaming(key, "")));
+
+        // START FOR TESTING - WRITE DATA INTO OUTPUT
+        // readResult.apply(Window.into(FixedWindows.of(Duration.standardMinutes(options.getWindowSize()))))
+        // .apply("Format results", MapElements.into(TypeDescriptors.strings())
+        // .via((KV<String, String> readresult) -> readresult.getKey() + " $$ " +
+        // readresult.getValue()))
+        // .apply("WriteTest",
+        // TextIO.write().to(options.getOutput()).withWindowedWrites().withNumShards(1));
+        // END FOR TESTING - WRITE DATA INTO OUTPUT
+
+        CCDAParsingFn ccdaParsingFn = new CCDAParsingFn();
+
+        CHFLogConfigurations parsingLog = new CHFLogConfigurations();
+        parsingLog = CHFLogConfig.clone();
+
+        final String dt = formatter.format(new Date());
+        parsingLog.setMethodName("XMLtoNaiveJSON");
+        ccdaParsingFn.setCHFLogConfigs(parsingLog);
+
+        PCollectionTuple parsedData = readResult.get(EXTRACTINGXML_TAG).apply("XMLtoNaiveJSON",
+                ParDo.of(ccdaParsingFn).withOutputTags(CCDAPARSING_TAG, TupleTagList.of(ERROR_ENTRY_TAG)));
+
+        parsedData.get(ERROR_ENTRY_TAG).apply("SerializeParsingErrors", MapElements
+                .into(TypeDescriptors.kvs(TypeDescriptors.strings(), TypeDescriptors.strings())).via((ErrorEntry e) -> {
+                    String errorPath = "";
+                    if (e.getErrorFiles() != null && e.getErrorFiles().size() > 0) {
+                        errorPath = e.getErrorFiles().get(0);
+                    }
+                    // else if(e.getErrorFilePath() != null) {
+                    // errorPath = e.getErrorFilePath();
+                    // }
+                    return KV.of(errorPath, ErrorEntryConverter.toJsonObject(e).toString());
+                }))
+                .apply(Window.<KV<String, String>>into(FixedWindows.of(ERROR_LOG_WINDOW_SIZE))
+                        .triggering(Repeatedly.forever(
+                                AfterProcessingTime.pastFirstElementInPane().plusDelayOf(ERROR_LOG_WINDOW_SIZE)))
+                        .withAllowedLateness(Duration.ZERO).discardingFiredPanes())
+                .apply("Writing Parsing error", FileIO.<String, KV<String, String>>writeDynamic().by(x -> x.getKey())
+                        .withDestinationCoder(StringUtf8Coder.of()).via(Contextful.fn(y -> y.getValue()), TextIO.sink())
+                        .to(errOutputPath).withNaming(key -> FileIO.Write.defaultNaming(key, "")));
+
+        /*
+         * PCollection<String> failedParsed = parsedData.get(ERROR_ENTRY_TAG)
+         * .apply("Get failed XML to JSONs", FileIO.<ErrorEntry>writeDynamic()
+         * .by(ErrorEntry::getErrorFileList) .withDestinationCoder(StringUtf8Coder.of())
+         * .via(ErrorEntry::toJsonStr, TextIO.sink()) .to() .withNaming(key ->
+         * FileIO.Write.defaultNaming("file-" + key, ".txt")) );
+         */
+        /*
+         * readResult.apply("XmltoNaiveJson", ParDo .of(new DoFn<KV<String, String>,
+         * String>() extends ErrorEnabledDoFn<M, MappingOutput> {
+         * 
+         * @ProcessElement public void processElement(ProcessContext c) throws
+         * XmlToJsonException { //final Logger LOGGER =
+         * Logger.getLogger(CDAToFhirStreamingRunner.class.getName()); try { KV<String,
+         * String> e = c.element(); XmlToJsonCDARev2 xmlToJsonCDARev2 = new
+         * XmlToJsonCDARev2(); JSONObject retJson = new
+         * JSONObject(xmlToJsonCDARev2.parse(e.getValue()));
+         * retJson.put("__data_source__", e.getKey()); c.output(retJson.toString()); }
+         * catch (XmlToJsonException e) { LOGGER.info(ExceptionUtils.getStackTrace(e));
+         * } catch (RuntimeException e ) {
+         * LOGGER.severe(ExceptionUtils.getStackTrace(e)); }
+         */
+        /*
+         * p.apply("Create Data", Create.of(KV.of("one", "this is row 1"), KV.of("two",
+         * "this is row 2"), KV.of("three", "this is row 3"), KV.of("four",
+         * "this is row 4"))) .apply(FileIO.<String, KV<String, String>>writeDynamic()
+         * .by(KV::getKey) .withDestinationCoder(StringUtf8Coder.of())
+         * .via(Contextful.fn(KV::getValue), TextIO.sink()) .to(output) .withNaming(key
+         * -> FileIO.Write.defaultNaming("file-" + key, ".txt")));
+         */
+
+        /*
+         * } }));
+         */
+
+        // START FOR TESTING - WRITE DATA INTO OUTPUT
+        // parsedData.apply(Window.into(FixedWindows.of(Duration.standardMinutes(options.getWindowSize()))))
+        // .apply("WriteTest",
+        // TextIO.write().to(options.getOutput()).withWindowedWrites().withNumShards(1));
+        // END FOR TESTING - WRITE DATA INTO OUTPUT
+
+        //////////////////////////////////
+
+        SerializableFunction<String, HclsApiCDAr2MappableMessage> toMappableMessageFn;
+        toMappableMessageFn = HclsApiCDAr2MappableMessage::from;
+        MappingFn<HclsApiCDAr2MappableMessage> mappingFn = MappingFn.of(options.getMappingPath(), false);
+
+        CHFLogConfigurations mappingLog = CHFLogConfig.clone();
+        mappingLog.setMethodName("WhistleMap");
+        mappingFn.setCHFLogConfigs(mappingLog);
+
+        PCollection<HclsApiCDAr2MappableMessage> bundles = parsedData.get(CCDAPARSING_TAG)
+                .apply("PrepareNaiveInput",
+                        MapElements.into(TypeDescriptor.of(HclsApiCDAr2MappableMessage.class)).via(toMappableMessageFn))
+                .setCoder(HclsApiCDAr2MappableMessageCoder.of());
+
+        PCollectionTuple mappingResults = bundles.apply("WhistleMap",
+                ParDo.of(mappingFn).withOutputTags(MAPPING_TAG, TupleTagList.of(ERROR_ENTRY_TAG)));
+        PCollection<MappingOutput> mappedMessages = mappingResults.get(MAPPING_TAG)
+                .setCoder(MappedFhirMessageWithSourceTimeCoder.of());
+
+        // Report mapping errors.
+        mappingResults.get(ERROR_ENTRY_TAG).apply("WhistleMap-SerializeErrors", MapElements
+                .into(TypeDescriptors.kvs(TypeDescriptors.strings(), TypeDescriptors.strings())).via((ErrorEntry e) -> {
+                    String errorPath = "";
+                    if (e.getErrorFiles() != null && e.getErrorFiles().size() > 0) {
+                        errorPath = e.getErrorFiles().get(0);
+                    }
+                    // else if(e.getErrorFilePath() != null) {
+                    // errorPath = e.getErrorFilePath();
+                    // }
+                    return KV.of(errorPath, ErrorEntryConverter.toJsonObject(e).toString());
+                }))
+                .apply("WhistleMap-WindowErrors", Window.<KV<String, String>>into(FixedWindows.of(ERROR_LOG_WINDOW_SIZE))
+                        .triggering(Repeatedly.forever(
+                                AfterProcessingTime.pastFirstElementInPane().plusDelayOf(ERROR_LOG_WINDOW_SIZE)))
+                        .withAllowedLateness(Duration.ZERO).discardingFiredPanes())
+                .apply("WhislteMap-WriteErrors",
+                        FileIO.<String, KV<String, String>>writeDynamic().by(x -> x.getKey())
+                                .withDestinationCoder(StringUtf8Coder.of())
+                                .via(Contextful.fn(y -> y.getValue()), TextIO.sink()).to(errOutputPath)
+                                .withNaming(key -> FileIO.Write.defaultNaming(key, "")));
+        /*
+         * .apply( "SerializeMappingErrors", MapElements.into(TypeDescriptors.strings())
+         * .via(e -> ErrorEntryConverter.toTableRow(e).toString())) .apply(
+         * Window.<String>into(FixedWindows.of(ERROR_LOG_WINDOW_SIZE)) .triggering(
+         * Repeatedly.forever( AfterProcessingTime.pastFirstElementInPane()
+         * .plusDelayOf(ERROR_LOG_WINDOW_SIZE))) .withAllowedLateness(Duration.ZERO)
+         * .discardingFiredPanes()) .apply( "ReportMappingErrors", TextIO.write()
+         * .to(options.getMappingErrorPath()) .withWindowedWrites()
+         * .withNumShards(options.getErrorLogShardNum()));
+         */
+
+        PCollection<HealthcareIOError<String>> failedBodies;
+
+        /////////////////////////////////////////////////////////
+        // Commit FHIR resources.
+
+        // RA Added
+        CHFLogConfigurations loadingLog = CHFLogConfig.clone();
+        loadingLog.setMethodName("ExecuteBundles");
+
+        FhirIO.Write.Result writeResult = mappedMessages
+                .apply("Get Mapping Output", MapElements.into(TypeDescriptors.strings()).via(MappingOutput::getOutput))
+                .apply("Log Execute Bundle Start",
+                        MapElements.into(TypeDescriptors.strings()).via((final String dataToLoad) -> {
+                            CHFLogConfigurations startLoadingLog = loadingLog.clone();
+                            String inputFile = "temp_input_file.txt";
+                            try {
+                                JSONObject bundle = new JSONObject(dataToLoad).getJSONArray("entry").getJSONObject(0)
+                                        .getJSONObject("resource");
+                                JSONObject firstEntry = bundle.getJSONArray("entry").getJSONObject(0)
+                                        .getJSONObject("resource");
+                                inputFile = firstEntry.getJSONObject("meta").getString("source");
+                            } catch (Exception e) {
+                                CHFLogWriter.writeLog(Level.SEVERE, "Could not parse resp object: " + e.getMessage()
+                                        + " ******** " + e.getStackTrace(), startLoadingLog);
+                            }
+                            startLoadingLog.setCorrId(FileNameUtils.getBaseName(inputFile));
+                            CHFLogWriter.writeLog(Level.INFO,
+                                    "Starting " + startLoadingLog.getMethodName() + " for file " + inputFile,
+                                    startLoadingLog);
+                            return dataToLoad;
+                        }))
+                .apply("Execute Bundles", FhirIO.Write.executeBundles(options.getFhirStore()));
+
+        writeResult.getSuccessfulBodies().apply("Log Execute Bundle Success",
+                MapElements.into(TypeDescriptors.strings()).via(resp -> {
+                    CHFLogConfigurations fileLoadingLog = loadingLog.clone();
+                    fileLoadingLog.setMethodName("ExecuteBundleSuccess");
+                    String inputFile = "temp_input_file.txt";
+                    try {
+                        JSONObject bundle = new JSONObject(resp).getJSONArray("entry").getJSONObject(0)
+                                .getJSONObject("resource");
+                        JSONObject firstEntry = bundle.getJSONArray("entry").getJSONObject(0).getJSONObject("resource");
+                        inputFile = firstEntry.getJSONObject("meta").getString("source");
+                    } catch (Exception e) {
+                        CHFLogWriter.writeLog(Level.SEVERE,
+                                "Could not parse resp object: " + e.getMessage() + " ******** " + e.getStackTrace(),
+                                fileLoadingLog);
+                    }
+                    List<String> inputFileList = new ArrayList<String>();
+                    Collections.addAll(inputFileList, inputFile);
+                    fileLoadingLog.setInputFiles(inputFileList);
+                    fileLoadingLog.setCorrId(FileNameUtils.getBaseName(inputFile));
+                    CHFLogWriter.writeLog(Level.INFO,
+                            "Successfully Completed " + fileLoadingLog.getMethodName() + " for file " + inputFile,
+                            fileLoadingLog);
+                    return resp;
+                }));
+
+        // Uncomment these to see the full FHIR Store response after loading (** may
+        // contain PHI/PII data!**)
+        // .apply("WriteFHIRBundlesSuccess",
+        // TextIO.write().to("gs://usmedpent-shareddata-chfcode-dev/tmp/radams/cda_conformedjson_0902/write_success/"));
+
+        CHFLogConfigurations loadingErrLog = CHFLogConfig.clone();
+        loadingErrLog.setMethodName("ExecuteBundleErrors");
+
+        failedBodies = writeResult.getFailedBodies();
+
+        HealthcareIOErrorToTableRow<String> bundleErrorConverter = new HealthcareIOErrorToTableRow<>();
+        failedBodies.apply("ConvertBundleErrors", MapElements
+                .into(TypeDescriptors.kvs(TypeDescriptors.strings(), TypeDescriptors.strings())).via(resp -> {
+                    JSONObject bndlErrJsonObj = bundleErrorConverter.toJsonObject(resp);
+                    bndlErrJsonObj.put("APP_NAME", loadingErrLog.getAppName());
+                    bndlErrJsonObj.put("GCP_PROJECT", loadingErrLog.getGCPProjectName());
+                    bndlErrJsonObj.put("PROJECT_NAME", loadingErrLog.getWorkstreamName());
+                    bndlErrJsonObj.put("METHOD_NAME", loadingErrLog.getMethodName());
+                    String errorFile = "Unknown_error";
+                    JSONArray inputFilesFHIR = new JSONArray();
+                    try {
+                        inputFilesFHIR = bndlErrJsonObj.getJSONObject("META").getJSONArray("INPUT_FILES");
+                        bndlErrJsonObj.put("INPUT_FILES", inputFilesFHIR);
+                        errorFile = loadingErrLog.createErrorFilePath(inputFilesFHIR.get(0).toString(), true);
+                    } catch (Exception e) {
+                        CHFLogWriter.writeLog(Level.SEVERE, "in bundle errors, found exception: " + e.toString(),
+                                loadingErrLog);
+                    }
+                    CHFLogConfigurations loadingErr = loadingErrLog.clone();
+                    loadingErr.setStatus(Level.INFO.toString());
+                    loadingErr.setCorrId(FileNameUtils.getBaseName(inputFilesFHIR.get(0).toString()));
+                    loadingErr.setErrorPath(loadingErrLog.getErrorPath());
+                    loadingErr.setInputFiles((List<String>) (Object) inputFilesFHIR.toList());
+                    loadingErr.setStatusCode(bndlErrJsonObj.getInt("STATUS_CODE"));
+                    CHFLogWriter.writeLog(Level.SEVERE, bndlErrJsonObj.getString("INFO"), loadingErr);
+                    return KV.of(errorFile, bndlErrJsonObj.toString());
+                }))
+                .apply("ExecuteBundle-WindowErrors", Window.<KV<String, String>>into(FixedWindows.of(ERROR_LOG_WINDOW_SIZE))
+                        .triggering(Repeatedly.forever(
+                                AfterProcessingTime.pastFirstElementInPane().plusDelayOf(ERROR_LOG_WINDOW_SIZE)))
+                        .withAllowedLateness(Duration.ZERO).discardingFiredPanes())
+                .apply("ExecuteBundles-WriteErrors",
+                        FileIO.<String, KV<String, String>>writeDynamic().by(x -> x.getKey())
+                                .withDestinationCoder(StringUtf8Coder.of())
+                                .via(Contextful.fn(y -> y.getValue()), TextIO.sink()).to(errOutputPath)
+                                .withNaming(key -> FileIO.Write.defaultNaming(key, "")));
+
+        /*
+         * .apply( Window.<String>into(FixedWindows.of(ERROR_LOG_WINDOW_SIZE))
+         * .triggering( Repeatedly.forever( AfterProcessingTime.pastFirstElementInPane()
+         * .plusDelayOf(ERROR_LOG_WINDOW_SIZE))) .withAllowedLateness(Duration.ZERO)
+         * .discardingFiredPanes()) .apply( "RecordWriteErrors", TextIO.write()
+         * .to(options.getWriteErrorPath()) .withWindowedWrites()
+         * .withNumShards(options.getErrorLogShardNum()));
+         */
+
+        // START FOR TESTING - WRITE DATA INTO OUTPUT
+        // mappedMessages.apply("PrepareOutput",
+        // MapElements.into(TypeDescriptors.strings()).via(MappingOutput::getOutput))
+        // .apply("WriteConformedJson", TextIO.write().to(options.getOutput()));*/
+        // END FOR TESTING - WRITE DATA INTO OUTPUT
+        /////////////////////////////////////////////////
+        /*
+         * mappedMessages.apply("PrepareOutput",
+         * MapElements.into(TypeDescriptors.strings()).via(MappingOutput::getOutput))
+         * .apply("WriteConformedJson", TextIO.write().to(options.getOutput()));
+         */
+
+        return pipeline;
+    }
+
+    public static void main(String[] args) throws XmlToJsonException, UnsupportedEncodingException, IOException {
+        Pipeline pipeline = createPipeline(args);
+        pipeline.run();
+    }
+}

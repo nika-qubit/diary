@@ -1,61 +1,61 @@
 package com.google.dataflow.eou.diary.playground;
 
-import com.google.dataflow.eou.diary.playground.Dummy;
+import com.google.cloud.healthcare.etl.xmltojson.XmlToJsonCDARev2;
 import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.io.FileIO;
+import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
-import org.apache.beam.sdk.transforms.Create;
 import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.sdk.transforms.GroupByKey;
 import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
-import com.google.cloud.datastore.Datastore;
-import com.google.cloud.datastore.DatastoreOptions;
-import com.google.cloud.datastore.EntityQuery;
-import com.google.cloud.datastore.Query;
-import com.google.cloud.datastore.StructuredQuery;
-import com.google.cloud.datastore.StructuredQuery.PropertyFilter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import org.json.JSONObject;
+
+import java.io.IOException;
+
 
 public class Playground {
 
-  public Pipeline buildPipeline(PipelineOptions options) {
-    Pipeline p = Pipeline.create(options);
-    
-    List<Dummy> dummies = new ArrayList<>();
-    for (int i=0; i < 50000; i++) {
-      dummies.add(Dummy.create("lol"));
+    public static void main(String[] args) {
+        Playground playground = new Playground();
+        playground.buildPipeline(PipelineOptionsFactory.fromArgs(args).create()).run().waitUntilFinish();
     }
 
-    PCollection<Dummy> dummyPColl = p.apply("Create Dummies", Create.of(dummies));
-    dummyPColl.apply(ParDo.of(new DsQueryTest()));
-    return p;
-  }
+    public Pipeline buildPipeline(PipelineOptions options) {
+        Pipeline p = Pipeline.create(options);
 
-  public static class DsQueryTest extends DoFn<Dummy, Void> {
-    private Datastore datastore;
-
-    @Setup
-    public void initialize() throws Exception {
-      datastore = DatastoreOptions.newBuilder().setProjectId("ningk-test-project").build().getService(); 
+        ReadFile r = new ReadFile();
+        PCollection<FileIO.ReadableFile> readables = r.readPattern(p, "input-xml.txt");
+        PCollection<KV<String, String>> read = readables.apply(ParDo.of(new ReadXmlFn()));
+        PCollection<String> parsed = read.apply(ParDo.of(new ParseFn()));
+        parsed.apply(TextIO.write().to("/tmp/ok"));
+        return p;
     }
+}
 
+class ReadXmlFn extends DoFn<FileIO.ReadableFile, KV<String, String>> {
     @ProcessElement
-    public void processElement(ProcessContext processContext) {
-      EntityQuery.Builder queryBuilder = Query.newEntityQueryBuilder().setKind("Dummy");
-      queryBuilder.setFilter(PropertyFilter.eq("name", processContext.element().getName()));
-      datastore.run(queryBuilder.build());
+    public void process(@Element FileIO.ReadableFile rf, OutputReceiver<KV<String, String>> out) {
+        try {
+            out.output(KV.of(rf.getMetadata().resourceId().toString(), rf.readFullyAsUTF8String()));
+        } catch (IOException e) {}
     }
-  }
+}
 
-  public static void main(String[] args) {
-    Playground playground = new Playground();
-    playground.buildPipeline(PipelineOptionsFactory.fromArgs(args).create()).run().waitUntilFinish();
-  }
+class ParseFn extends DoFn<KV<String, String>, String> {
+    @ProcessElement
+    public void process(@Element KV<String, String> kv, OutputReceiver<String> out) {
+        String retJsonStr = "";
+        try {
+            JSONObject retJson = new JSONObject(
+                    new XmlToJsonCDARev2()
+                            .parse(kv.getValue().toString())
+            ).put("__data_source__", kv.getKey());
+            retJsonStr = retJson.toString();
+        } catch (Exception e) {}
+        out.output(retJsonStr);
+    }
 }
 
 
